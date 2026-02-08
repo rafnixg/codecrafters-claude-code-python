@@ -9,11 +9,31 @@ from openai import OpenAI
 
 from app.tools import read_file
 
+# Load configuration from environment variables
 API_KEY = os.getenv("OPENROUTER_API_KEY")
 BASE_URL = os.getenv("OPENROUTER_BASE_URL", default="https://openrouter.ai/api/v1")
-
+MOODEL = os.getenv("OPENROUTER_MODEL", default="anthropic/claude-haiku-4.5")
+# Tools registry and metadata for the model to know how to call them
 TOOLS_REGISTRY = {"read_file": read_file}
-
+TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "read_file",
+            "description": "Read and return the contents of a file",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "file_path": {
+                        "type": "string",
+                        "description": "The path to the file to read",
+                    }
+                },
+                "required": ["file_path"],
+            },
+        },
+    }
+]
 
 def main():
     p = argparse.ArgumentParser()
@@ -25,30 +45,11 @@ def main():
 
     client = OpenAI(api_key=API_KEY, base_url=BASE_URL)
 
-    tools = [
-        {
-            "type": "function",
-            "function": {
-                "name": "read_file",
-                "description": "Read and return the contents of a file",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "file_path": {
-                            "type": "string",
-                            "description": "The path to the file to read",
-                        }
-                    },
-                    "required": ["file_path"],
-                },
-            },
-        }
-    ]
 
     chat = client.chat.completions.create(
-        model="anthropic/claude-haiku-4.5",
+        model=MOODEL,
         messages=[{"role": "user", "content": args.p}],
-        tools=tools,
+        tools=TOOLS,
         max_tokens=4000,
     )
 
@@ -58,8 +59,12 @@ def main():
     # You can use print statements as follows for debugging, they'll be visible when running tests.
     print("Logs from your program will appear here!", file=sys.stderr)
 
-    # print(chat.choices[0].message.content)
-    for tool_call in chat.choices[0].message.tool_calls or []:
+    message = chat.choices[0].message
+
+    if not message.tool_calls:
+        print(message.content)
+
+    for tool_call in message.tool_calls or []:
         if tool_call.type != "function":
             print(f"Unknown tool call type: {tool_call.type}", file=sys.stderr)
             continue
