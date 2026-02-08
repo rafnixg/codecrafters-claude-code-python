@@ -1,16 +1,19 @@
+"""Main application file."""
+
 import argparse
 import os
 import sys
+import json
 
 from openai import OpenAI
+
+from app.tools import read_file
 
 API_KEY = os.getenv("OPENROUTER_API_KEY")
 BASE_URL = os.getenv("OPENROUTER_BASE_URL", default="https://openrouter.ai/api/v1")
 
-def read_file(file_path: str) -> str:
-    """Read and return the contents of a file"""
-    return ""
-    
+TOOLS_REGISTRY = {"read_file": read_file}
+
 
 def main():
     p = argparse.ArgumentParser()
@@ -36,9 +39,9 @@ def main():
                             "description": "The path to the file to read",
                         }
                     },
-                    "required": ["file_path"]
-                }
-            }
+                    "required": ["file_path"],
+                },
+            },
         }
     ]
 
@@ -46,7 +49,7 @@ def main():
         model="anthropic/claude-haiku-4.5",
         messages=[{"role": "user", "content": args.p}],
         tools=tools,
-        max_tokens=4000
+        max_tokens=4000,
     )
 
     if not chat.choices or len(chat.choices) == 0:
@@ -55,8 +58,19 @@ def main():
     # You can use print statements as follows for debugging, they'll be visible when running tests.
     print("Logs from your program will appear here!", file=sys.stderr)
 
-    # TODO: Uncomment the following line to pass the first stage
-    print(chat.choices[0].message.content)
+    # print(chat.choices[0].message.content)
+    for tool_call in chat.choices[0].message.tool_calls or []:
+        if tool_call.type != "function":
+            print(f"Unknown tool call type: {tool_call.type}", file=sys.stderr)
+            continue
+
+        tool = TOOLS_REGISTRY[tool_call.function.name]
+        result = tool(**json.loads(tool_call.function.arguments))
+        print(
+            f"Tool call: {tool_call.function.name}({tool_call.function.arguments}) -> {result}",
+            file=sys.stderr,
+        )
+        print(result)
 
 
 if __name__ == "__main__":
