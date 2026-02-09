@@ -1,34 +1,76 @@
-[![progress-banner](https://backend.codecrafters.io/progress/claude-code/12d42b3e-b722-4dac-9cc6-e955743a9a3e)](https://app.codecrafters.io/users/rafnixg?r=2qF)
+[![progress-banner](https://backend.codecrafters.io/progress/ai-agent/id/placeholder)](https://app.codecrafters.io/courses/ai-agent/overview)
 
 This is a starting point for Python solutions to the
-["Build Your own Claude Code" Challenge](https://codecrafters.io/challenges/claude-code).
+["Build Your Own AI Agent" Challenge](https://app.codecrafters.io/courses/ai-agent/overview).
 
-Claude Code is an AI coding assistant that uses Large Language Models (LLMs) to
-understand code and perform actions through tool calls. In this challenge,
-you'll build your own Claude Code from scratch by implementing an LLM-powered
-coding assistant.
+In this challenge, you'll build an AI coding agent similar to Claude Code or Cursor Agent. Your agent will be able to use tools like reading/writing files, executing terminal commands, and more.
 
-Along the way you'll learn about HTTP RESTful APIs, OpenAI-compatible tool
-calling, agent loop, and how to integrate multiple tools into an AI assistant.
+**Note**: Head over to [codecrafters.io](https://codecrafters.io) to try the challenge.
 
-**Note**: If you're viewing this repo on GitHub, head over to
-[codecrafters.io](https://codecrafters.io) to try the challenge.
+---
 
-# Passing the first stage
+# AI Coding Agent
 
-The entry point for your `claude-code` implementation is in `app/main.py`. Study
-and uncomment the relevant code, and submit to pass the first stage:
+Un agente de IA que puede ejecutar tareas de programación usando herramientas (tools) como leer/escribir archivos y ejecutar comandos en terminal.
 
-```sh
-codecrafters submit
+## Arquitectura
+
+El proyecto usa POO con las siguientes clases:
+
+- **`Tool`** (ABC): Clase base abstracta para definir herramientas
+- **`ToolRegistry`**: Registro para gestionar y ejecutar herramientas
+- **`Agent`**: Implementa el loop de conversación con el LLM
+
+### Tools disponibles
+
+| Tool | Descripción |
+|------|-------------|
+| `read_file` | Lee el contenido de un archivo |
+| `write_file` | Escribe contenido a un archivo |
+| `bash_terminal` | Ejecuta comandos en bash |
+
+## Uso
+
+```bash
+./your_program.sh -p "tu prompt aquí"
 ```
 
-# Stage 2 & beyond
+### Ejemplos
 
-Note: This section is for stages 2 and beyond.
+```bash
+# Leer un archivo
+./your_program.sh -p "Lee el contenido de README.md"
 
-1. Ensure you have `uv` installed locally.
-2. Run `./your_program.sh` to run your program, which is implemented in
-   `app/main.py`.
-3. Run `codecrafters submit` to submit your solution to CodeCrafters. Test
-   output will be streamed to your terminal.
+# Ejecutar comandos
+./your_program.sh -p "Lista los archivos en el directorio actual"
+
+# Tareas complejas
+./your_program.sh -p "Encuentra todos los archivos Python y cuenta las líneas de código"
+```
+
+## Configuración
+
+Variables de entorno:
+
+| Variable | Descripción | Default |
+|----------|-------------|---------|
+| `OPENROUTER_API_KEY` | API key de OpenRouter | (requerido) |
+| `OPENROUTER_BASE_URL` | URL base de la API | `https://openrouter.ai/api/v1` |
+| `OPENROUTER_MODEL` | Modelo a usar | `anthropic/claude-haiku-4.5` |
+
+## Estructura del proyecto
+
+```
+app/
+├── main.py      # Entry point
+├── agent.py     # Clase Agent (loop de conversación)
+├── tool.py      # Clases base Tool y ToolRegistry
+└── tools.py     # Implementaciones concretas de tools
+```
+
+## Agregar un nuevo Tool
+
+1. Crear una clase que herede de `Tool` en `tools.py`
+2. Implementar las propiedades `name`, `description`, `parameters`
+3. Implementar el método `execute(**kwargs)`
+4. Registrar en `create_default_registry()`
