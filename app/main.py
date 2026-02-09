@@ -45,37 +45,51 @@ def main():
 
     client = OpenAI(api_key=API_KEY, base_url=BASE_URL)
 
+    # Initialize conversation history
+    messages = [{"role": "user", "content": args.p}]
 
-    chat = client.chat.completions.create(
-        model=MOODEL,
-        messages=[{"role": "user", "content": args.p}],
-        tools=TOOLS,
-        max_tokens=4000,
-    )
-
-    if not chat.choices or len(chat.choices) == 0:
-        raise RuntimeError("no choices in response")
-
-    # You can use print statements as follows for debugging, they'll be visible when running tests.
-    print("Logs from your program will appear here!", file=sys.stderr)
-
-    message = chat.choices[0].message
-
-    if not message.tool_calls:
-        print(message.content)
-
-    for tool_call in message.tool_calls or []:
-        if tool_call.type != "function":
-            print(f"Unknown tool call type: {tool_call.type}", file=sys.stderr)
-            continue
-
-        tool = TOOLS_REGISTRY[tool_call.function.name]
-        result = tool(**json.loads(tool_call.function.arguments))
-        print(
-            f"Tool call: {tool_call.function.name}({tool_call.function.arguments}) -> {result}",
-            file=sys.stderr,
+    # Agent loop
+    while True:
+        chat = client.chat.completions.create(
+            model=MOODEL,
+            messages=messages,
+            tools=TOOLS,
+            max_tokens=4000,
         )
-        print(result)
+
+        if not chat.choices or len(chat.choices) == 0:
+            raise RuntimeError("no choices in response")
+
+        message = chat.choices[0].message
+
+        # Append assistant's response to conversation history
+        messages.append(message)
+
+        # Check if the model wants to use tools
+        if not message.tool_calls:
+            # No tool calls - final response, print and exit
+            print(message.content)
+            break
+
+        # Execute each tool call and add results to messages
+        for tool_call in message.tool_calls:
+            if tool_call.type != "function":
+                print(f"Unknown tool call type: {tool_call.type}", file=sys.stderr)
+                continue
+
+            tool = TOOLS_REGISTRY[tool_call.function.name]
+            result = tool(**json.loads(tool_call.function.arguments))
+            print(
+                f"Tool call: {tool_call.function.name}({tool_call.function.arguments}) -> {result}",
+                file=sys.stderr,
+            )
+
+            # Add tool result to conversation
+            messages.append({
+                "role": "tool",
+                "tool_call_id": tool_call.id,
+                "content": result,
+            })
 
 
 if __name__ == "__main__":
