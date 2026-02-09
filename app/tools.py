@@ -73,12 +73,44 @@ class WriteFileTool(Tool):
             f.write(content)
         return f"Successfully wrote to {file_path}"
 
+class BashTerminalTool(Tool):
+    """Tool to execute bash commands."""
+
+    @property
+    def name(self) -> str:
+        return "bash_terminal"
+
+    @property
+    def description(self) -> str:
+        return "Execute a bash command and return the output"
+
+    @property
+    def parameters(self) -> dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "command": {
+                    "type": "string",
+                    "description": "The bash command to execute",
+                }
+            },
+            "required": ["command"],
+        }
+
+    def execute(self, **kwargs) -> str:
+        import subprocess
+
+        command = kwargs["command"]
+        try:
+            result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
+            return result.stdout
+        except subprocess.CalledProcessError as e:
+            return f"Command failed with error: {e.stderr}"
 
 def create_default_registry() -> ToolRegistry:
     """Create a registry with all default tools."""
     registry = ToolRegistry()
     registry.register(ReadFileTool())
     registry.register(WriteFileTool())
+    registry.register(BashTerminalTool())
     return registry
-
-
